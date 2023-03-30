@@ -1,17 +1,15 @@
 package saramaprom_test
 
 import (
-	"context"
 	"fmt"
 	"testing"
 	"time"
 
+	"github.com/iimos/saramaprom"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rcrowley/go-metrics"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/iimos/saramaprom"
 )
 
 func TestMetricCreation(t *testing.T) {
@@ -21,10 +19,7 @@ func TestMetricCreation(t *testing.T) {
 	err := metricsRegistry.Register("counter-for-broker-123", metrics.NewCounter())
 	require.NoError(t, err)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	err = saramaprom.ExportMetrics(ctx, metricsRegistry, saramaprom.Options{
+	saramaprom.ExportMetrics(metricsRegistry, saramaprom.Options{
 		Namespace:          "test",
 		Subsystem:          "subsys",
 		PrometheusRegistry: promRegistry,
@@ -36,7 +31,7 @@ func TestMetricCreation(t *testing.T) {
 		Subsystem: "subsys",
 		Name:      "counter",
 		Help:      "counter",
-	}, []string{"label", "broker", "topic"})
+	}, []string{"broker", "topic"})
 
 	err = promRegistry.Register(gauge)
 	require.Error(t, err, "Go-metrics registry didn't get registered to prometheus registry")
@@ -55,21 +50,16 @@ func TestLabels(t *testing.T) {
 	err = metricsRegistry.Register("skip-counter", metrics.NewCounter())
 	require.NoError(t, err)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	err = saramaprom.ExportMetrics(ctx, metricsRegistry, saramaprom.Options{
+	saramaprom.ExportMetrics(metricsRegistry, saramaprom.Options{
 		Namespace:          "test",
 		Subsystem:          "subsys",
-		Label:              "test-label",
 		PrometheusRegistry: promRegistry,
 	})
-	require.NoError(t, err)
 
 	t.Run("counter1-for-broker-123", func(t *testing.T) {
 		want := []gaugeDetails{{
 			name:        "test_subsys_counter1",
-			labels:      map[string]string{"broker": "123", "label": "test-label", "topic": ""},
+			labels:      map[string]string{"broker": "123", "topic": ""},
 			gaugeValues: []float64{0},
 		}}
 		got := getMetricDetails(promRegistry, "test_subsys_counter1")
@@ -78,7 +68,7 @@ func TestLabels(t *testing.T) {
 	t.Run("counter2-for-topic-abc", func(t *testing.T) {
 		want := []gaugeDetails{{
 			name:        "test_subsys_counter2",
-			labels:      map[string]string{"broker": "", "label": "test-label", "topic": "abc"},
+			labels:      map[string]string{"broker": "", "topic": "abc"},
 			gaugeValues: []float64{0},
 		}}
 		got := getMetricDetails(promRegistry, "test_subsys_counter2")
@@ -98,21 +88,18 @@ func TestMetricUpdate(t *testing.T) {
 	err := metricsRegistry.Register("counter-for-broker-5", counter)
 	require.NoError(t, err)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	err = saramaprom.ExportMetrics(ctx, metricsRegistry, saramaprom.Options{
+	saramaprom.ExportMetrics(metricsRegistry, saramaprom.Options{
 		Namespace:          "test",
 		Subsystem:          "subsys",
 		PrometheusRegistry: promRegistry,
-		FlushInterval:      100 * time.Millisecond,
+		RefreshInterval:    100 * time.Millisecond,
 	})
 	require.NoError(t, err)
 
 	t.Run("by default metric is 0", func(t *testing.T) {
 		want := []gaugeDetails{{
 			name:        "test_subsys_counter",
-			labels:      map[string]string{"broker": "5", "label": "", "topic": ""},
+			labels:      map[string]string{"broker": "5", "topic": ""},
 			gaugeValues: []float64{0},
 		}}
 		got := getMetricDetails(promRegistry, "test_subsys_counter")
@@ -125,7 +112,7 @@ func TestMetricUpdate(t *testing.T) {
 	t.Run("after 1st increment", func(t *testing.T) {
 		want := []gaugeDetails{{
 			name:        "test_subsys_counter",
-			labels:      map[string]string{"broker": "5", "label": "", "topic": ""},
+			labels:      map[string]string{"broker": "5", "topic": ""},
 			gaugeValues: []float64{10},
 		}}
 		got := getMetricDetails(promRegistry, "test_subsys_counter")
@@ -138,7 +125,7 @@ func TestMetricUpdate(t *testing.T) {
 	t.Run("after 2nd increment", func(t *testing.T) {
 		want := []gaugeDetails{{
 			name:        "test_subsys_counter",
-			labels:      map[string]string{"broker": "5", "label": "", "topic": ""},
+			labels:      map[string]string{"broker": "5", "topic": ""},
 			gaugeValues: []float64{20},
 		}}
 		got := getMetricDetails(promRegistry, "test_subsys_counter")
@@ -146,7 +133,7 @@ func TestMetricUpdate(t *testing.T) {
 	})
 }
 
-func TestHistogram(t *testing.T) {
+func TestSummary(t *testing.T) {
 	promRegistry := prometheus.NewRegistry()
 	metricsRegistry := metrics.NewRegistry()
 
@@ -162,36 +149,22 @@ func TestHistogram(t *testing.T) {
 	}
 	gm.Update(10)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	err = saramaprom.ExportMetrics(ctx, metricsRegistry, saramaprom.Options{
+	saramaprom.ExportMetrics(metricsRegistry, saramaprom.Options{
 		Namespace:          "test",
 		Subsystem:          "subsys",
 		PrometheusRegistry: promRegistry,
-		FlushInterval:      100 * time.Millisecond,
+		RefreshInterval:    100 * time.Millisecond,
 	})
 	require.NoError(t, err)
 
 	time.Sleep(time.Second)
 	metricFamilies, err := promRegistry.Gather()
 	require.NoError(t, err)
-	require.Equal(t, 2, len(metricFamilies), "prometheus was unable to register the metric")
 
-	t.Run("check gauge", func(t *testing.T) {
-		want := []gaugeDetails{{
-			name:        "test_subsys_metric",
-			labels:      map[string]string{"broker": "", "label": "", "topic": "x"},
-			gaugeValues: []float64{10},
-		}}
-		got := getMetricDetails(promRegistry, "test_subsys_metric")
-		assert.Equal(t, want, got)
-	})
-
-	t.Run("check histogram", func(t *testing.T) {
-		t.Log(metricFamilies[1].GetMetric()[0].GetHistogram())
-		got := fmt.Sprint(metricFamilies[1])
-		want := `name:"test_subsys_metric_histogram" help:"metric" type:HISTOGRAM metric:<label:<name:"broker" value:"" > label:<name:"label" value:"" > label:<name:"topic" value:"x" > histogram:<sample_count:100 sample_sum:129 bucket:<cumulative_count:1 upper_bound:0.05 > bucket:<cumulative_count:1 upper_bound:0.1 > bucket:<cumulative_count:1 upper_bound:0.25 > bucket:<cumulative_count:1 upper_bound:0.5 > bucket:<cumulative_count:1 upper_bound:0.75 > bucket:<cumulative_count:1 upper_bound:0.9 > bucket:<cumulative_count:5 upper_bound:0.95 > bucket:<cumulative_count:9 upper_bound:0.99 > > > `
+	t.Run("check summary", func(t *testing.T) {
+		t.Log(metricFamilies[0].GetMetric()[0].GetSummary())
+		got := fmt.Sprint(metricFamilies[0])
+		want := `name:"test_subsys_metric" help:"metric" type:SUMMARY metric:<label:<name:"broker" value:"" > label:<name:"topic" value:"x" > summary:<sample_count:100 sample_sum:129 quantile:<quantile:0.05 value:1 > quantile:<quantile:0.1 value:1 > quantile:<quantile:0.25 value:1 > quantile:<quantile:0.5 value:1 > quantile:<quantile:0.75 value:1 > quantile:<quantile:0.9 value:1 > quantile:<quantile:0.95 value:5 > quantile:<quantile:0.99 value:9.949999999999974 > > > `
 		assert.Equal(t, want, got)
 	})
 }
@@ -225,13 +198,13 @@ func getMetricDetails(pr *prometheus.Registry, fullName string) []gaugeDetails {
 				case "GAUGE":
 					gd.gaugeValues = append(gd.gaugeValues, m.GetGauge().GetValue())
 				case "HISTOGRAM":
-					//TODO
-					//buckets := make(map[float64]uint64)
-					//m.GetHistogram().GetSampleSum()
-					//m.GetHistogram().GetSampleCount()
-					//for _, b := range m.GetHistogram().GetBucket() {
+					// TODO
+					// buckets := make(map[float64]uint64)
+					// m.GetHistogram().GetSampleSum()
+					// m.GetHistogram().GetSampleCount()
+					// for _, b := range m.GetHistogram().GetBucket() {
 					//	buckets[b.GetUpperBound()] = b.GetCumulativeCount()
-					//}
+					// }
 				}
 				ret = append(ret, gd)
 			}
