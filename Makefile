@@ -1,4 +1,3 @@
-export GO111MODULE := on
 export GOPROXY := go-proxy.oss.wandera.net
 export GONOSUMDB := github.com/wandera/*
 
@@ -13,7 +12,7 @@ prepare:
 check: prepare
 	@echo "Running check"
 ifeq (, $(shell which golangci-lint))
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOPATH)/bin v1.50.1
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOPATH)/bin v1.52.2
 endif
 	golangci-lint run
 	go mod tidy
