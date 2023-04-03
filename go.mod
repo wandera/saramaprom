@@ -1,4 +1,4 @@
-module github.com/iimos/saramaprom
+module github.com/wandera/saramaprom
 
 go 1.19
 
