@@ -1,6 +1,3 @@
-export GOPROXY := go-proxy.oss.wandera.net
-export GONOSUMDB := github.com/wandera/*
-
 all: check test
 
 MAKEFLAGS += --no-print-directory
