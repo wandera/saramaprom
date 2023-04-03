@@ -1,0 +1,17 @@
+name: lint
+on:
+  pull_request:
+jobs:
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/setup-go@v4.0.0
+      with:
+        go-version-file: go.mod
+    - uses: actions/checkout@v3.3.0
+    - name: golangci-lint
+      uses: wandera/golangci-lint-action@v3.3.1
+      with:
+        version: v1.52.2
+        args: --verbose
