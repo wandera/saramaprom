@@ -29,10 +29,10 @@ But in that case the prometheus metrics have to be distinguished by labels. Use 
 // create new registry and export metrics for cluster Foo 
 configFoo := sarama.NewConfig()
 configFoo.MetricRegistry = metrics.NewRegistry()
-saramaprom.ExportMetrics(configFoo.MetricRegistry, saramaprom.Options{ExtraLabels: map[string]string{"cluster": "foo"},})
+saramaprom.ExportMetrics(configFoo.MetricRegistry, saramaprom.Options{ExtraLabels: map[string]string{"cluster": "foo"}})
 
 // create new registry and export metrics for cluster Bar 
 configBar := sarama.NewConfig()
 configBar.MetricRegistry = metrics.NewRegistry()
-saramaprom.ExportMetrics(configBar.MetricRegistry, saramaprom.Options{ExtraLabels: map[string]string{"cluster": "bar"},})
+saramaprom.ExportMetrics(configBar.MetricRegistry, saramaprom.Options{ExtraLabels: map[string]string{"cluster": "bar"}})
 ```
