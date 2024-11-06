@@ -22,3 +22,17 @@ saramaprom.ExportMetrics(metricRegistry, saramaprom.Options{})
 ```
 
 `saramaprom.Options` enables you to for example configure how often the metrics are refreshed, namespace of the metrics, etc.
+
+Multiple metric registries can be defined to not mix values of several Kafka cluster.
+But in that case the prometheus metrics have to be distinguished by labels. Use `ExtraLabels` option for that:
+```
+// create new registry and export metrics for cluster Foo 
+configFoo := sarama.NewConfig()
+configFoo.MetricRegistry = metrics.NewRegistry()
+saramaprom.ExportMetrics(configFoo.MetricRegistry, saramaprom.Options{ExtraLabels: map[string]string{"cluster": "foo"},})
+
+// create new registry and export metrics for cluster Bar 
+configBar := sarama.NewConfig()
+configBar.MetricRegistry = metrics.NewRegistry()
+saramaprom.ExportMetrics(configBar.MetricRegistry, saramaprom.Options{ExtraLabels: map[string]string{"cluster": "bar"},})
+```

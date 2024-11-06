@@ -20,6 +20,9 @@ type Options struct {
 	Namespace string
 	Subsystem string
 
+	// Extra labels to be added to all metrics. Beware, this will override the default label value if configured with same name.
+	ExtraLabels prometheus.Labels
+
 	// RefreshInterval specifies interval between updating metrics. Default 1s.
 	RefreshInterval time.Duration
 }
