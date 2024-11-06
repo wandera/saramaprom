@@ -54,12 +54,13 @@ func TestLabels(t *testing.T) {
 		Namespace:          "test",
 		Subsystem:          "subsys",
 		PrometheusRegistry: promRegistry,
+		ExtraLabels:        map[string]string{"extra": "foo"},
 	})
 
 	t.Run("counter1-for-broker-123", func(t *testing.T) {
 		want := []gaugeDetails{{
 			name:        "test_subsys_counter1",
-			labels:      map[string]string{"broker": "123", "topic": ""},
+			labels:      map[string]string{"broker": "123", "topic": "", "extra": "foo"},
 			gaugeValues: []float64{0},
 		}}
 		got := getMetricDetails(promRegistry, "test_subsys_counter1")
@@ -68,7 +69,7 @@ func TestLabels(t *testing.T) {
 	t.Run("counter2-for-topic-abc", func(t *testing.T) {
 		want := []gaugeDetails{{
 			name:        "test_subsys_counter2",
-			labels:      map[string]string{"broker": "", "topic": "abc"},
+			labels:      map[string]string{"broker": "", "topic": "abc", "extra": "foo"},
 			gaugeValues: []float64{0},
 		}}
 		got := getMetricDetails(promRegistry, "test_subsys_counter2")

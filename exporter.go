@@ -43,6 +43,9 @@ func (c *exporter) gaugeFromNameAndValue(name string, val float64) error {
 	if skip {
 		return nil
 	}
+	for n, v := range c.opt.ExtraLabels {
+		labels[n] = v
+	}
 
 	if _, exists := c.gauges[name]; !exists {
 		labelNames := make([]string, 0, len(labels))
@@ -150,6 +153,9 @@ func (c *exporter) summaryFromNameAndMetric(name string, goMetric interface{}, q
 	name, labels, skip := c.metricNameAndLabels(name)
 	if skip {
 		return nil
+	}
+	for n, v := range c.opt.ExtraLabels {
+		labels[n] = v
 	}
 
 	desc := prometheus.NewDesc(
