@@ -1,29 +1,31 @@
 all: check test
-
-MAKEFLAGS += --no-print-directory
+export GOPROXY := proxy.golang.org,go-proxy.oss.wandera.net,direct
+export GONOSUMDB := github.com/wandera/*,github.com/jamf/*
 
 prepare:
-	@echo "Downloading tools"
-	@cat tools.go | grep _ | cut -f2 -d " " | xargs -tI % sh -c "go install %"
+ifeq (, $(shell which tparse))
+	@echo "tparse is missing on your system. Install it first: go install github.com/mfridman/tparse@latest"; exit 1
+endif
+ifeq (, $(shell which golangci-lint))
+	@echo "golangci-lint is missing on your system. Install it first: brew install golangci-lint"; exit 1
+endif
 
 check: prepare
 	@echo "Running check"
-ifeq (, $(shell which golangci-lint))
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOPATH)/bin v1.59.0
-endif
 	golangci-lint run
 	go mod tidy
 
-test: prepare
+test:
 	@echo "Running tests"
-	mkdir -p report
-	go test -race -v ./... -coverprofile=report/coverage.txt | tee report/report.txt
-	go-junit-report -set-exit-code < report/report.txt > report/report.xml
-	gocov convert report/coverage.txt | gocov-xml > report/coverage.xml
-	go mod tidy
+	go test -race -json -cover -v ./... | tparse -all
 
 clean:
 	@echo "Running clean"
 	rm -rf "report/"
 
-.PHONY: all check test prepare
+update: prepare
+	@echo "Updating go dependencies and tools"
+	go get -u ./...
+	go mod tidy
+
+.PHONY: all prepare check test update

@@ -1,39 +1,49 @@
+version: "2"
 run:
-  timeout: 5m
   modules-download-mode: readonly
 linters:
-  disable-all: true
+  default: none
   enable:
-    - gosimple
+    - gocritic
+    - godot
+    - gosec
     - govet
     - ineffassign
-    - staticcheck
-    - typecheck
-    - unused
-    - gofmt
     - revive
-    - gci
-    - gofumpt
-    - whitespace
-    - godot
+    - staticcheck
     - unparam
-    - gocritic
-    - gosec
-
-issues:
-  include:
-    - EXC0012 # disable excluding of issues about comments from revive
-  exclude-rules:
-  - path: _test\.go
-    linters:
-    - gosec
-
-linters-settings:
-  godot:
-    # list of regexps for excluding particular comment lines from check
-    exclude:
-    - '^ @.*' # swaggo comments like // @title
-    - '^ (\d+)(\.|\)).*' # enumeration comments like // 1. or // 1)
-  gosec:
-    global:
-      audit: true
+    - unused
+    - whitespace
+  settings:
+    godot:
+      exclude:
+        - ^ @.*
+        - ^ (\d+)(\.|\)).*
+  exclusions:
+    generated: lax
+    presets:
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - gosec
+        path: _test\.go
+      - linters:
+          - gosec
+        text: G115
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - gofumpt
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
