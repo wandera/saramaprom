@@ -1,3 +1,4 @@
+// Package saramaprom provides a Prometheus exporter for the Sarama metrics.
 package saramaprom
 
 // This code is based on a code of https://github.com/deathowl/go-metrics-prometheus library.
