@@ -1,6 +1,4 @@
 all: check test
-export GOPROXY := proxy.golang.org,go-proxy.oss.wandera.net,direct
-export GONOSUMDB := github.com/wandera/*,github.com/jamf/*
 
 prepare:
 ifeq (, $(shell which tparse))
